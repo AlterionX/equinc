@@ -1,20 +1,16 @@
-use currency::Currency;
-use num::{rational::Ratio, traits::{Zero, One, ToPrimitive}, integer::Integer, bigint::{BigUint}};
+use num::{bigint::BigUint, traits::ToPrimitive};
 use structopt::StructOpt;
-use isocountry::CountryCode;
-use maplit::hashmap;
-use std::{collections::HashMap, iter::Extend, ops::{Bound, RangeBounds}, cell::RefCell};
 
-mod logger;
-mod util;
 mod brackets;
-mod loc;
 mod cfg;
 mod citizen;
+mod loc;
+mod logger;
+mod util;
 
-use util::BigUR;
 use cfg::Opts;
 use citizen::Citizen;
+use util::BigUR;
 
 fn main() {
     logger::setup().expect("the logger to intialize properly.");
@@ -40,10 +36,16 @@ fn main() {
     // TODO is there a better way to do this?
     let big_100 = BigUint::from(100u8);
 
-    let bills = (equivalent_income.clone().trunc() / big_100.clone()).floor().to_integer();
+    println!("Taxes at home: {}.", citizen.calc_taxes());
+    println!("Taxes at target: {}.", citizen.calc_taxes_at(&target));
+
+    let bills = (equivalent_income.clone().trunc() / big_100.clone())
+        .floor()
+        .to_integer();
     let coins = (equivalent_income.clone().trunc() % big_100.clone()).to_integer();
     let rem = equivalent_income.fract();
-    println!(r#"Estimated equivalent income at new location:
+    println!(
+        r#"Estimated equivalent income at new location:
     raw output: {}
     total: {}.{:02}
     rem fraction of a cent: {}"#,

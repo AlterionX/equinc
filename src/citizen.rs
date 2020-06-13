@@ -1,14 +1,7 @@
-use currency::Currency;
-use num::{rational::Ratio, traits::{Zero, One, ToPrimitive}, integer::Integer, bigint::{BigUint}};
-use structopt::StructOpt;
-use isocountry::CountryCode;
-use maplit::hashmap;
-use std::{collections::HashMap, iter::Extend, ops::{Bound, RangeBounds}, cell::RefCell};
-
-use crate::util::BigUR;
-use crate::brackets::{MaritalStatus, TaxSystem};
-use crate::loc::Location;
+use crate::brackets::MaritalStatus;
 use crate::cfg::AnalysisMode;
+use crate::loc::Location;
+use crate::util::BigUR;
 
 #[derive(Debug)]
 pub struct Citizen {
@@ -19,6 +12,14 @@ pub struct Citizen {
 }
 
 impl Citizen {
+    pub fn calc_taxes(&self) -> BigUR {
+        self.home.calc_taxes(&self.income, self.status)
+    }
+
+    pub fn calc_taxes_at(&self, loc: &Location) -> BigUR {
+        loc.calc_taxes(&self.income, self.status)
+    }
+
     pub fn estimate_equivalent_income_at(&self, target: &Location, mode: AnalysisMode) -> BigUR {
         let net = self.home.calc_net(&self.income, self.status);
         let target_pre_tax = target.calc_gross(&net, self.status);

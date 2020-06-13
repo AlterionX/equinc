@@ -1,5 +1,8 @@
-use fern::{colors::{Color, ColoredLevelConfig}, InitError, Dispatch, log_file};
 use chrono::Local;
+use fern::{
+    colors::{Color, ColoredLevelConfig},
+    log_file, Dispatch, InitError,
+};
 use log::LevelFilter;
 
 struct Cfg {
@@ -41,7 +44,8 @@ pub fn setup() -> Result<(), InitError> {
     Cfg {
         level: LevelFilter::Debug,
         bypass_stdio: false,
-    }.setup_logger()
+    }
+    .setup_logger()
 }
 
 #[cfg(not(debug_assertions))]
@@ -49,5 +53,6 @@ pub fn setup() -> Result<(), InitError> {
     Cfg {
         level: LevelFilter::Info,
         bypass_stdio: true,
-    }.setup_logger()
+    }
+    .setup_logger()
 }

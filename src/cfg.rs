@@ -1,9 +1,4 @@
 use currency::Currency;
-use num::{rational::Ratio, traits::{Zero, One, ToPrimitive}, integer::Integer, bigint::{BigUint}};
-use structopt::StructOpt;
-use isocountry::CountryCode;
-use maplit::hashmap;
-use std::{collections::HashMap, iter::Extend, ops::{Bound, RangeBounds}, cell::RefCell};
 
 use crate::{brackets::MaritalStatus, loc::Location};
 
@@ -39,8 +34,7 @@ impl std::fmt::Display for AnalysisMode {
     }
 }
 
-#[derive(structopt::StructOpt)]
-#[derive(Debug)]
+#[derive(structopt::StructOpt, Debug)]
 pub struct Opts {
     pub source: Location,
     pub target: Location,

@@ -1,16 +1,20 @@
-use currency::Currency;
-use num::{rational::Ratio, traits::{Zero, One, ToPrimitive}, integer::Integer, bigint::{BigUint}};
-use structopt::StructOpt;
-use isocountry::CountryCode;
-use maplit::hashmap;
-use std::{collections::HashMap, iter::Extend, ops::{Bound, RangeBounds}, cell::RefCell};
+use num::{
+    bigint::BigUint,
+    traits::{One, Zero},
+};
+use std::{
+    collections::HashMap,
+    iter::Extend,
+    ops::{Bound, RangeBounds},
+};
 
-use crate::util::{BigUR, UR64, cast_ratio};
+use crate::util::{cast_ratio, BigUR, UR64};
 
 /// Assumes the list of separators are inclusive.
 pub fn multibound_to_opts_iter<I, Iter, T>(i: I) -> impl Iterator<Item = (Option<T>, Option<T>)>
-    where I: IntoIterator<Item = T, IntoIter = Iter>,
-          Iter: Clone + Iterator<Item = T>,
+where
+    I: IntoIterator<Item = T, IntoIter = Iter>,
+    Iter: Clone + Iterator<Item = T>,
 {
     let iter = i.into_iter();
     // Enum variant inference forces this to be typed since the assumed type is too stringent.
@@ -26,8 +30,9 @@ pub fn multibound_to_bounds_iter<I, Iter, T>(
     // This should be true by default.
     inclusive_bounds: bool,
 ) -> impl Iterator<Item = (Bound<T>, Bound<T>)>
-    where I: IntoIterator<Item = T, IntoIter = Iter>,
-          Iter: Clone + Iterator<Item = T>,
+where
+    I: IntoIterator<Item = T, IntoIter = Iter>,
+    Iter: Clone + Iterator<Item = T>,
 {
     // Enum variant inference forces this to be typed since the assumed type is too stringent.
     let (bot_map, top_map): (fn(T) -> Bound<T>, fn(T) -> Bound<T>) = if inclusive_bounds {
@@ -38,14 +43,15 @@ pub fn multibound_to_bounds_iter<I, Iter, T>(
 
     let opt_iter = multibound_to_opts_iter(i);
 
-    let opt_to_bound = move |opt, conv: fn(T) -> Bound<T>| {
-        match opt {
-            Some(v) => conv(v),
-            None => Bound::Unbounded,
-        }
+    let opt_to_bound = move |opt, conv: fn(T) -> Bound<T>| match opt {
+        Some(v) => conv(v),
+        None => Bound::Unbounded,
     };
     let process_bounds = move |(top_opt, bot_opt)| {
-        (opt_to_bound(top_opt, top_map), opt_to_bound(bot_opt, bot_map))
+        (
+            opt_to_bound(top_opt, top_map),
+            opt_to_bound(bot_opt, bot_map),
+        )
     };
 
     opt_iter.map(process_bounds)
@@ -110,7 +116,6 @@ impl TaxBrackets {
         assert!(separators.len() + 1 == rates.len());
         let flats = {
             let mut flats = Vec::with_capacity(rates.len());
-            let zero = BigUR::zero();
             for bracket in 0..rates.len() {
                 let deduction = if bracket == 0 {
                     BigUR::zero()
@@ -120,7 +125,8 @@ impl TaxBrackets {
                     } else {
                         separators[bracket - 1].clone() - separators[bracket - 2].clone()
                     };
-                    flats.last().map_or_else(BigUR::zero, Clone::clone) + diff * cast_ratio(rates[bracket])
+                    flats.last().map_or_else(BigUR::zero, Clone::clone)
+                        + diff * cast_ratio(rates[bracket])
                 };
                 flats.push(deduction);
             }
@@ -139,8 +145,8 @@ impl TaxBrackets {
     }
 
     fn calc_taxes(&self, gross: &BigUR) -> BigUR {
-        let bounds_and_taxation_info = multibound_to_bounds_iter(self.separators.iter(), true)
-            .zip(self.taxation_info());
+        let bounds_and_taxation_info =
+            multibound_to_bounds_iter(self.separators.iter(), true).zip(self.taxation_info());
         for (bound, taxation_info) in bounds_and_taxation_info {
             if bound.contains(gross) {
                 let start_bound: Bound<&BigUR> = bound.start_bound();
@@ -175,8 +181,8 @@ impl TaxBrackets {
         // Map pre tax ranges to post tax ranges
         let separators = self.separators_post_tax();
 
-        let bounds_and_taxation_info = multibound_to_bounds_iter(separators, true)
-            .zip(self.taxation_info());
+        let bounds_and_taxation_info =
+            multibound_to_bounds_iter(separators, true).zip(self.taxation_info());
         for (bound, taxation_info) in bounds_and_taxation_info {
             if bound.contains(net) {
                 let over_amount = match bound.start_bound() {
@@ -184,9 +190,7 @@ impl TaxBrackets {
                     // so we simply take the entire income.
                     Bound::Unbounded => net.clone(),
                     // It's contained, so we tax everything in the range
-                    Bound::Excluded(n) | Bound::Included(n) => {
-                        net.clone() - n.clone()
-                    },
+                    Bound::Excluded(n) | Bound::Included(n) => net.clone() - n.clone(),
                 };
                 let (flat, rate) = taxation_info;
                 let percentage_of_gross = UR64::one() - rate;
@@ -213,7 +217,9 @@ impl TaxBrackets {
             let mut rhs_brackets_iter = rhs_brackets.iter().peekable();
 
             let mut merged_separators = Vec::with_capacity(lhs_brackets.len() * 2);
-            while let (Some(lhs_bracket), Some(rhs_bracket)) = (lhs_brackets_iter.peek(), rhs_brackets_iter.peek()) {
+            while let (Some(lhs_bracket), Some(rhs_bracket)) =
+                (lhs_brackets_iter.peek(), rhs_brackets_iter.peek())
+            {
                 if lhs_bracket == rhs_bracket {
                     merged_separators.push((Side::Both, *lhs_bracket));
                     lhs_brackets_iter.next();
@@ -230,7 +236,10 @@ impl TaxBrackets {
             merged_separators.extend(lhs_brackets_iter.map(|b| (Side::LHS, b)));
             merged_separators.extend(rhs_brackets_iter.map(|b| (Side::RHS, b)));
 
-            merged_separators.into_iter().map(|(side, b)| (side, b.clone())).unzip()
+            merged_separators
+                .into_iter()
+                .map(|(side, b)| (side, b.clone()))
+                .unzip()
         };
 
         let merged_rates = {
@@ -240,22 +249,34 @@ impl TaxBrackets {
             let mut merged_rates = Vec::with_capacity(merge_order.len() + 1);
 
             // Start with the base rate
-            let mut curr_lhs = *lhs_rates_iter.peek().expect("the lhs tax brackets have at least one bracket.");
-            let mut curr_rhs = *rhs_rates_iter.peek().expect("the rhs tax brackets have at least one bracket.");
+            let mut curr_lhs = *lhs_rates_iter
+                .peek()
+                .expect("the lhs tax brackets have at least one bracket.");
+            let mut curr_rhs = *rhs_rates_iter
+                .peek()
+                .expect("the rhs tax brackets have at least one bracket.");
             merged_rates.push(curr_lhs.clone() + curr_rhs.clone());
 
             for side in merge_order {
                 match side {
-                    Side::LHS  => {
-                        curr_lhs = lhs_rates_iter.next().expect("Number of tax rates in the lhs to be correct.");
-                    },
-                    Side::RHS  => {
-                        curr_rhs = rhs_rates_iter.next().expect("Number of tax rates in the rhs to be correct.");
-                    },
+                    Side::LHS => {
+                        curr_lhs = lhs_rates_iter
+                            .next()
+                            .expect("Number of tax rates in the lhs to be correct.");
+                    }
+                    Side::RHS => {
+                        curr_rhs = rhs_rates_iter
+                            .next()
+                            .expect("Number of tax rates in the rhs to be correct.");
+                    }
                     Side::Both => {
-                        curr_lhs = lhs_rates_iter.next().expect("Number of tax rates in the lhs to be correct.");
-                        curr_rhs = rhs_rates_iter.next().expect("Number of tax rates in the rhs to be correct.");
-                    },
+                        curr_lhs = lhs_rates_iter
+                            .next()
+                            .expect("Number of tax rates in the lhs to be correct.");
+                        curr_rhs = rhs_rates_iter
+                            .next()
+                            .expect("Number of tax rates in the rhs to be correct.");
+                    }
                 }
                 merged_rates.push(curr_lhs + curr_rhs);
             }
@@ -272,7 +293,15 @@ impl TaxBrackets {
 pub struct TaxSystem(HashMap<MaritalStatus, TaxBrackets>);
 
 impl TaxSystem {
-    pub fn new(brackets_by_status: HashMap<MaritalStatus, (impl IntoIterator<Item = impl Into<BigUint>>, impl IntoIterator<Item = impl Into<UR64>>)>) -> Self {
+    pub fn new(
+        brackets_by_status: HashMap<
+            MaritalStatus,
+            (
+                impl IntoIterator<Item = impl Into<BigUint>>,
+                impl IntoIterator<Item = impl Into<UR64>>,
+            ),
+        >,
+    ) -> Self {
         let brackets = brackets_by_status
             .into_iter()
             .map(|(k, v)| {
@@ -297,15 +326,21 @@ impl TaxSystem {
     }
 
     pub fn calc_taxes(&self, gross: &BigUR, status: MaritalStatus) -> BigUR {
-        self.0.get(&status).map_or_else(BigUR::zero, |b| b.calc_taxes(gross))
+        self.0
+            .get(&status)
+            .map_or_else(BigUR::zero, |b| b.calc_taxes(gross))
     }
 
     pub fn calc_net(&self, gross: &BigUR, status: MaritalStatus) -> BigUR {
-        self.0.get(&status).map_or_else(|| gross.clone(), |b| b.calc_net(gross))
+        self.0
+            .get(&status)
+            .map_or_else(|| gross.clone(), |b| b.calc_net(gross))
     }
 
     pub fn calc_gross(&self, net: &BigUR, status: MaritalStatus) -> BigUR {
-        self.0.get(&status).map_or_else(|| net.clone(), |b| b.calc_gross(net))
+        self.0
+            .get(&status)
+            .map_or_else(|| net.clone(), |b| b.calc_gross(net))
     }
 
     pub fn merge(mut lhs: TaxSystem, mut rhs: TaxSystem) -> Self {
@@ -315,15 +350,14 @@ impl TaxSystem {
             MaritalStatus::Joint,
             MaritalStatus::HeadOfHousehold,
         ];
-        let new_tax_brackets = statuses
-            .iter()
-            .filter_map(|k| {
-                match (lhs.0.remove(k), rhs.0.remove(k)) {
+        let new_tax_brackets =
+            statuses
+                .iter()
+                .filter_map(|k| match (lhs.0.remove(k), rhs.0.remove(k)) {
                     (None, None) => None,
                     (None, Some(lone)) | (Some(lone), None) => Some((*k, lone)),
                     (Some(lhs), Some(rhs)) => Some((*k, TaxBrackets::merge(lhs, rhs))),
-                }
-            });
+                });
         Self(new_tax_brackets.collect())
     }
 }

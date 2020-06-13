@@ -1,12 +1,10 @@
-use currency::Currency;
-use num::{rational::Ratio, traits::{Zero, One, ToPrimitive}, integer::Integer, bigint::{BigUint}};
-use structopt::StructOpt;
-use isocountry::CountryCode;
+pub use isocountry::CountryCode;
 use maplit::hashmap;
-use std::{collections::HashMap, iter::Extend, ops::{Bound, RangeBounds}, cell::RefCell};
+use num::traits::Zero;
+use std::{cell::RefCell, collections::HashMap};
 
-use crate::util::*;
 use crate::brackets::{MaritalStatus, TaxSystem};
+use crate::util::*;
 
 // TODO This can become `const` eventually.
 fn usa_tax_system() -> TaxSystem {
@@ -29,7 +27,7 @@ fn usa_tax_system() -> TaxSystem {
     TaxSystem::new(ranges_by_status)
 }
 
-fn country_tax_system(country: &CountryCode) -> Option<TaxSystem> {
+pub fn country_tax_system(country: &CountryCode) -> Option<TaxSystem> {
     match country {
         CountryCode::USA => Some(usa_tax_system()),
         _ => panic!("Tax rates not implemented for country {:?}.", country),
@@ -38,7 +36,7 @@ fn country_tax_system(country: &CountryCode) -> Option<TaxSystem> {
 
 #[non_exhaustive]
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
-enum State {
+pub enum State {
     CA,
     TX,
 }
@@ -48,11 +46,11 @@ impl State {
         match self {
             Self::CA => {
                 let taxes_by_bracket = vec![
-                    UR64::new( 1_1 ,  1_000),
-                    UR64::new( 2_2 ,  1_000),
-                    UR64::new( 4_4 ,  1_000),
-                    UR64::new( 6_6 ,  1_000),
-                    UR64::new( 8_8 ,  1_000),
+                    UR64::new(1_1, 1_000),
+                    UR64::new(2_2, 1_000),
+                    UR64::new(4_4, 1_000),
+                    UR64::new(6_6, 1_000),
+                    UR64::new(8_8, 1_000),
                     UR64::new(10_23, 10_000),
                     UR64::new(11_33, 10_000),
                     UR64::new(12_43, 10_000),
@@ -67,7 +65,7 @@ impl State {
                 };
 
                 Some(TaxSystem::new(brackets_by_status))
-            },
+            }
             Self::TX => None,
             #[allow(unreachable_patterns)]
             _ => panic!("Tax rates not implemented for state {:?}.", self),
@@ -88,9 +86,7 @@ impl std::str::FromStr for State {
 
 fn city_tax_system<S: AsRef<str>>(city: S) -> Option<TaxSystem> {
     match city.as_ref() {
-        "San Francisco" | "SF" => {
-            Some(TaxSystem::flat(UR64::new(15, 1000)))
-        },
+        "San Francisco" | "SF" => Some(TaxSystem::flat(UR64::new(15, 1000))),
         "Austin" | "AUS" => None,
         _ => panic!("Tax rates not implemented for city {:?}.", city.as_ref()),
     }
@@ -100,11 +96,11 @@ fn city_tax_system<S: AsRef<str>>(city: S) -> Option<TaxSystem> {
 // TODO think about iso3166-2
 #[derive(Debug)]
 pub struct Location {
-    country: CountryCode,
-    state: State,
-    city: String,
+    pub country: CountryCode,
+    pub state: State,
+    pub city: String,
     // TODO cache the final tax bracket
-    cached_merged_tax_bracket: RefCell<Option<TaxSystem>>
+    cached_merged_tax_bracket: RefCell<Option<TaxSystem>>,
 }
 
 impl Location {
@@ -129,12 +125,19 @@ impl Location {
         merged
     }
 
+    pub fn calc_taxes(&self, gross: &BigUR, status: MaritalStatus) -> BigUR {
+        self.tax_system()
+            .map_or_else(|| BigUR::zero(), |sys| sys.calc_taxes(gross, status))
+    }
+
     pub fn calc_net(&self, gross: &BigUR, status: MaritalStatus) -> BigUR {
-        self.tax_system().map_or_else(|| gross.clone(), |sys| sys.calc_net(gross, status))
+        self.tax_system()
+            .map_or_else(|| gross.clone(), |sys| sys.calc_net(gross, status))
     }
 
     pub fn calc_gross(&self, net: &BigUR, status: MaritalStatus) -> BigUR {
-        self.tax_system().map_or_else(|| net.clone(), |sys| sys.calc_gross(net, status))
+        self.tax_system()
+            .map_or_else(|| net.clone(), |sys| sys.calc_gross(net, status))
     }
 }
 
