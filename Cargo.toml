@@ -1,0 +1,37 @@
+[package]
+name = "equinc"
+version = "0.1.0"
+authors = ["AlterionX <ben.xu.cs@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# Standalone std crates
+[dependencies.num]
+version = "0.2"
+[dependencies.log]
+version = "0.4"
+[dependencies.currency_num]
+package = "num"
+version = "0.1.32"
+
+# QoL crates
+[dependencies.maplit]
+version = "1"
+[dependencies.tap]
+version = "0.4"
+
+# System crates
+[dependencies.structopt]
+version = "0.3"
+[dependencies.chrono]
+version = "0.4"
+[dependencies.fern]
+version = "0.6"
+features = ["colored"]
+
+# Refrence crates
+[dependencies.isocountry]
+version = "0.2"
+[dependencies.currency]
+version = "0.4"
