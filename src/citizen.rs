@@ -22,14 +22,15 @@ impl Citizen {
 
     pub fn estimate_equivalent_income_at(&self, target: &Location, mode: AnalysisMode) -> BigUR {
         let net = self.home.calc_net(&self.income, self.status);
-        let target_pre_tax = target.calc_gross(&net, self.status);
 
         match mode {
             // Just do taxes, so stop here
-            AnalysisMode::PostTax => target_pre_tax,
+            AnalysisMode::PostTax => target.calc_gross(&net, self.status),
             AnalysisMode::Disposable => {
                 // TODO calculate disposable income
-                unimplemented!("Anaysis mode disposable income not yet functional.");
+                let ratio = self.home.get_living_costs_factor() / target.get_living_costs_factor();
+                let target_net = net * ratio;
+                target.calc_gross(&target_net, self.status)
             }
         }
     }

@@ -139,6 +139,10 @@ impl Location {
         self.tax_system()
             .map_or_else(|| net.clone(), |sys| sys.calc_gross(net, status))
     }
+
+    pub fn get_living_costs_factor(&self) -> BigUR {
+        unimplemented!("Implement living costs conversion at some point. For now, it only works when used with the '--usage post_tax' cmd flag.")
+    }
 }
 
 impl std::str::FromStr for Location {
