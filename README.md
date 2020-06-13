@@ -1,4 +1,4 @@
-# equ(ivalent) inc(come)
+# equ(ivalent) inc(ome)
 Calculating the equivalent income when moving from place to place.
 
 # Disclaimer
