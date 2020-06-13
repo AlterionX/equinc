@@ -28,7 +28,7 @@ impl Citizen {
             AnalysisMode::PostTax => target.calc_gross(&net, self.status),
             AnalysisMode::Disposable => {
                 // TODO calculate disposable income
-                let ratio = self.home.get_living_costs_factor() / target.get_living_costs_factor();
+                let ratio = target.get_living_costs_factor() / self.home.get_living_costs_factor();
                 let target_net = net * ratio;
                 target.calc_gross(&target_net, self.status)
             }
