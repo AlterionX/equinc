@@ -122,6 +122,7 @@ impl Location {
                 }
             }
         }
+        log::debug!("Final brackets: {:?}", merged);
         merged
     }
 
@@ -141,7 +142,7 @@ impl Location {
     }
 
     pub fn get_living_costs_factor(&self) -> BigUR {
-        // TODO Look up this cost factor online at some point.
+        // TODO Look up this cost factor online at some point. Like here, for example: https://www.nerdwallet.com/cost-of-living-calculator/compare/new-york-manhattan-ny-vs-san-francisco-ca
         // These factors are relative to NYC
         let factor = match (self.country, self.state, self.city.as_str()) {
             (CountryCode::USA, State::CA, "SF") | (CountryCode::USA, State::CA, "San Francisco") => UR64::new(39_842, 50_000),

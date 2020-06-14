@@ -3,7 +3,7 @@ use num::BigUint;
 use crate::brackets::MaritalStatus;
 use crate::cfg::AnalysisMode;
 use crate::loc::Location;
-use crate::util::BigUR;
+use crate::util::{ApproxRatio, BigUR};
 
 #[derive(Debug)]
 pub struct Citizen {
@@ -25,6 +25,7 @@ impl Citizen {
 
     pub fn estimate_equivalent_income_at(&self, target: &Location, mode: AnalysisMode) -> BigUR {
         let net = self.home.calc_net(&self.income, self.status);
+        log::info!("Net income: {}", ApproxRatio(net.clone()));
 
         match mode {
             // Just do taxes, so stop here

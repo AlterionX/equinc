@@ -8,7 +8,7 @@ use std::{
     ops::{Bound, RangeBounds},
 };
 
-use crate::util::{cast_ratio, BigUR, UR64};
+use crate::util::{cast_ratio, ApproxRatio, BigUR, UR64};
 
 /// Assumes the list of separators are inclusive.
 pub fn multibound_to_opts_iter<I, Iter, T>(i: I) -> impl Iterator<Item = (Option<T>, Option<T>)>
@@ -126,7 +126,7 @@ impl TaxBrackets {
                         separators[bracket - 1].clone() - separators[bracket - 2].clone()
                     };
                     flats.last().map_or_else(BigUR::zero, Clone::clone)
-                        + diff * cast_ratio(rates[bracket])
+                        + diff * cast_ratio(rates[bracket - 1])
                 };
                 flats.push(deduction);
             }
@@ -148,6 +148,7 @@ impl TaxBrackets {
         let bounds_and_taxation_info =
             multibound_to_bounds_iter(self.separators.iter(), true).zip(self.taxation_info());
         for (bound, taxation_info) in bounds_and_taxation_info {
+            log::info!("Bracket {:?}", bound);
             if bound.contains(gross) {
                 let start_bound: Bound<&BigUR> = bound.start_bound();
                 let amount_over = match start_bound {
@@ -155,7 +156,15 @@ impl TaxBrackets {
                     Bound::Included(n) | Bound::Excluded(n) => gross.clone() - n.clone(),
                 };
                 let (flat, rate) = taxation_info;
-                return flat + amount_over * cast_ratio(*rate);
+                let taxes = flat + amount_over.clone() * cast_ratio(*rate);
+                log::info!("Taxes for {} calced to be {} with rate {} on {} and bump {}.",
+                    ApproxRatio(gross.clone()),
+                    ApproxRatio(taxes.clone()),
+                    ApproxRatio(rate.clone()),
+                    ApproxRatio(amount_over.clone()),
+                    ApproxRatio(flat.clone()),
+                );
+                return taxes;
             }
         }
         unreachable!("All bounds should be included by `multibound_to_bounds_iter`");
@@ -178,23 +187,31 @@ impl TaxBrackets {
     }
 
     fn calc_gross(&self, net: &BigUR) -> BigUR {
+        log::info!("Net                : {}", ApproxRatio(net.clone()));
         // Map pre tax ranges to post tax ranges
         let separators = self.separators_post_tax();
 
         let bounds_and_taxation_info =
             multibound_to_bounds_iter(separators, true).zip(self.taxation_info());
         for (bound, taxation_info) in bounds_and_taxation_info {
+            log::info!("Bracket {:?}", bound);
             if bound.contains(net) {
-                let over_amount = match bound.start_bound() {
+                let (over_amount, prev_bucket) = match bound.start_bound() {
                     // No matter if the end bound is present or absent, the value is less than the top bound,
                     // so we simply take the entire income.
-                    Bound::Unbounded => net.clone(),
+                    Bound::Unbounded => (net.clone(), BigUR::zero()),
                     // It's contained, so we tax everything in the range
-                    Bound::Excluded(n) | Bound::Included(n) => net.clone() - n.clone(),
+                    Bound::Excluded(n) | Bound::Included(n) => (net.clone() - n.clone(), n.clone()),
                 };
+                log::info!("Over amount        : {}", ApproxRatio(over_amount.clone()));
                 let (flat, rate) = taxation_info;
                 let percentage_of_gross = UR64::one() - rate;
-                return flat.clone() + over_amount / cast_ratio(percentage_of_gross);
+                log::info!("Flat deduction     : {}", ApproxRatio(flat.clone()));
+                log::info!("Marginal rate      : {}", ApproxRatio(rate.clone()));
+                log::info!("Percentage of gross: {}", ApproxRatio(percentage_of_gross.clone()));
+                let gross = flat + prev_bucket + over_amount / cast_ratio(percentage_of_gross);
+                log::info!("Gross              : {}", ApproxRatio(gross.clone()));
+                return gross;
             }
         }
         unreachable!("All bounds should be included in the for loop.");
@@ -243,37 +260,37 @@ impl TaxBrackets {
         };
 
         let merged_rates = {
-            let mut lhs_rates_iter = lhs_rates.iter().peekable();
-            let mut rhs_rates_iter = rhs_rates.iter().peekable();
+            let mut lhs_rates_iter = lhs_rates.iter();
+            let mut rhs_rates_iter = rhs_rates.iter();
 
             let mut merged_rates = Vec::with_capacity(merge_order.len() + 1);
 
             // Start with the base rate
             let mut curr_lhs = *lhs_rates_iter
-                .peek()
+                .next()
                 .expect("the lhs tax brackets have at least one bracket.");
             let mut curr_rhs = *rhs_rates_iter
-                .peek()
+                .next()
                 .expect("the rhs tax brackets have at least one bracket.");
             merged_rates.push(curr_lhs.clone() + curr_rhs.clone());
 
             for side in merge_order {
                 match side {
                     Side::LHS => {
-                        curr_lhs = lhs_rates_iter
+                        curr_lhs = *lhs_rates_iter
                             .next()
                             .expect("Number of tax rates in the lhs to be correct.");
                     }
                     Side::RHS => {
-                        curr_rhs = rhs_rates_iter
+                        curr_rhs = *rhs_rates_iter
                             .next()
                             .expect("Number of tax rates in the rhs to be correct.");
                     }
                     Side::Both => {
-                        curr_lhs = lhs_rates_iter
+                        curr_lhs = *lhs_rates_iter
                             .next()
                             .expect("Number of tax rates in the lhs to be correct.");
-                        curr_rhs = rhs_rates_iter
+                        curr_rhs = *rhs_rates_iter
                             .next()
                             .expect("Number of tax rates in the rhs to be correct.");
                     }
