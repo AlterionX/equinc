@@ -1,6 +1,6 @@
 pub use isocountry::CountryCode;
 use maplit::hashmap;
-use num::traits::Zero;
+use num::traits::{One, Zero};
 use std::{cell::RefCell, collections::HashMap};
 
 use crate::brackets::{MaritalStatus, TaxSystem};
@@ -141,7 +141,15 @@ impl Location {
     }
 
     pub fn get_living_costs_factor(&self) -> BigUR {
-        unimplemented!("Implement living costs conversion at some point. For now, it only works when used with the '--usage post_tax' cmd flag.")
+        // TODO Look up this cost factor online at some point.
+        // These factors are relative to NYC
+        let factor = match (self.country, self.state, self.city.as_str()) {
+            (CountryCode::USA, State::CA, "SF") | (CountryCode::USA, State::CA, "San Francisco") => UR64::new(39_842, 50_000),
+            (CountryCode::USA, State::TX, "AUS") | (CountryCode::USA, State::TX, "Austin") => UR64::new(19_847, 50_000),
+            (CountryCode::USA, State::TX, "NYC") | (CountryCode::USA, State::TX, "New York") | (CountryCode::USA, State::TX, "NY") => UR64::one(),
+            _ => unimplemented!("Living costs not implemented for {:?}. For now, it only works when used with the '--usage post_tax' cmd flag.", self),
+        };
+        cast_ratio(factor)
     }
 }
 

@@ -19,11 +19,17 @@ fn main() {
     log::info!("Attempting to process arguments: {:?}", opts);
     let (sign, income) = opts.income.value().clone().to_bytes_le();
     if sign == currency_num::bigint::Sign::Minus {
-        panic!("Unexpected negative income. Closing down.");
+        panic!("Unexpected negative income. Terminating.");
+    }
+    let (sign, monthly_expenses) = opts.monthly_expenses.value().clone().to_bytes_le();
+    if sign == currency_num::bigint::Sign::Minus {
+        panic!("Unexpected negative expenses. Terminating.");
     }
     let income = BigUint::from_bytes_le(income.as_slice());
+    let monthly_expenses = BigUint::from_bytes_le(monthly_expenses.as_slice());
     let citizen = Citizen {
         income: BigUR::from_integer(income),
+        monthly_expenses: BigUR::from_integer(monthly_expenses),
         status: opts.status,
         home: opts.source,
     };

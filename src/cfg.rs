@@ -39,6 +39,7 @@ pub struct Opts {
     pub source: Location,
     pub target: Location,
     pub income: Currency,
+    pub monthly_expenses: Currency,
     pub status: MaritalStatus,
     #[structopt(default_value, long)]
     pub usage: AnalysisMode,
