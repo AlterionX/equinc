@@ -157,7 +157,8 @@ impl TaxBrackets {
                 };
                 let (flat, rate) = taxation_info;
                 let taxes = flat + amount_over.clone() * cast_ratio(*rate);
-                log::info!("Taxes for {} calced to be {} with rate {} on {} and bump {}.",
+                log::info!(
+                    "Taxes for {} calced to be {} with rate {} on {} and bump {}.",
                     ApproxRatio(gross.clone()),
                     ApproxRatio(taxes.clone()),
                     ApproxRatio(rate.clone()),
@@ -208,7 +209,10 @@ impl TaxBrackets {
                 let percentage_of_gross = UR64::one() - rate;
                 log::info!("Flat deduction     : {}", ApproxRatio(flat.clone()));
                 log::info!("Marginal rate      : {}", ApproxRatio(rate.clone()));
-                log::info!("Percentage of gross: {}", ApproxRatio(percentage_of_gross.clone()));
+                log::info!(
+                    "Percentage of gross: {}",
+                    ApproxRatio(percentage_of_gross.clone())
+                );
                 let gross = flat + prev_bucket + over_amount / cast_ratio(percentage_of_gross);
                 log::info!("Gross              : {}", ApproxRatio(gross.clone()));
                 return gross;

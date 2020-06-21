@@ -8,7 +8,7 @@ edition = "2018"
 
 # Standalone std crates
 [dependencies.num]
-version = "0.2"
+version = "0.3"
 [dependencies.log]
 version = "0.4"
 [dependencies.currency_num]

@@ -1,4 +1,4 @@
-use num::{bigint::BigUint, traits::ToPrimitive};
+use num::bigint::BigUint;
 use structopt::StructOpt;
 
 mod brackets;
@@ -10,7 +10,7 @@ mod util;
 
 use cfg::Opts;
 use citizen::Citizen;
-use util::{BigUR, ApproxRatio};
+use util::{ApproxRatio, BigUR};
 
 fn main() {
     logger::setup().expect("the logger to intialize properly.");
@@ -43,9 +43,21 @@ fn main() {
 
     // TODO allow for other symbols.
     let currency_symbol = '$';
-    println!("Total earned   : {}{}", currency_symbol, ApproxRatio(citizen.income.clone()));
-    println!("Taxes at home  : {}{}", currency_symbol, ApproxRatio(citizen.calc_taxes()));
-    println!("Taxes at target: {}{}", currency_symbol, ApproxRatio(citizen.calc_taxes_at(&target)));
+    println!(
+        "Total earned   : {}{}",
+        currency_symbol,
+        ApproxRatio(citizen.income.clone())
+    );
+    println!(
+        "Taxes at home  : {}{}",
+        currency_symbol,
+        ApproxRatio(citizen.calc_taxes())
+    );
+    println!(
+        "Taxes at target: {}{}",
+        currency_symbol,
+        ApproxRatio(citizen.calc_taxes_at(&target))
+    );
 
     println!(
         r#"Estimated equivalent income at new location:
